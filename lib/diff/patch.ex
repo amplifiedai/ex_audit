@@ -35,7 +35,7 @@ defmodule ExAudit.Patch do
         Map.delete(map, key)
 
       {key, {:changed, changes}}, map ->
-        Map.update!(map, key, &patch(&1, changes))
+        Map.update(map, key, nil, &patch(&1, changes))
     end)
   end
 end
