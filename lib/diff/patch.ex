@@ -4,6 +4,7 @@ defmodule ExAudit.Patch do
   """
   def patch(_, {:primitive_change, _, value}), do: value
   def patch(value, :not_changed), do: value
+  def patch(nil, changes) when is_list(changes), do: patch([], changes)
 
   def patch(list, changes) when is_list(list) and is_list(changes) do
     changes
