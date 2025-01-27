@@ -31,4 +31,6 @@ defmodule ExAudit.Patch do
       {key, {:changed, changes}}, map -> Map.put(map, key, patch(map, changes))
     end)
   end
+
+  def patch(term, _), do: term
 end
