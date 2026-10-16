@@ -30,6 +30,34 @@ defmodule PatchTest do
     assert_patching(a, b)
   end
 
+  test "should undo a patch that added or removed several list items" do
+    assert_patching([1], [1, 2, 3])
+    assert_patching([1, 2, 3], [1])
+    assert_patching(["a", "b"], ["c", "a", "b", "d"])
+    assert_patching([%{foo: [1]}], [%{foo: [1, 2, 3]}, %{bar: 1}, %{baz: 2}])
+  end
+
+  test "should apply and undo the patch between any two short lists" do
+    lists = for length <- 0..4, list <- lists_of(length, [:a, :b, :c]), do: list
+
+    for a <- lists, b <- lists do
+      assert_patching(a, b)
+    end
+  end
+
+  test "should build each changed map from nothing" do
+    assert %{a: %{x: 1}, b: %{y: 2}} ==
+             Patch.patch(nil, %{
+               a: {:changed, %{x: {:added, 1}}},
+               b: {:changed, %{y: {:added, 2}}}
+             })
+  end
+
+  defp lists_of(0, _items), do: [[]]
+
+  defp lists_of(length, items),
+    do: for(item <- items, rest <- lists_of(length - 1, items), do: [item | rest])
+
   defp assert_patching(a, b) do
     patch = Diff.diff(a, b)
     assert b == Patch.patch(a, patch)
