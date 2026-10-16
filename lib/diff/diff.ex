@@ -72,39 +72,31 @@ defmodule ExAudit.Diff do
   end
 
   def diff(a, b) when is_list(a) and is_list(b) do
-    indexes = 0..:erlang.max(length(a) - 1, length(b) - 1)
-
-    changes =
-      for i <- indexes, into: [] do
-        value_a = Enum.at(a, i, @undefined)
-        value_b = Enum.at(b, i, @undefined)
-
-        case {value_a, value_b} do
-          {a, a} ->
-            nil
-
-          {@undefined, b} ->
-            {:added_to_list, i, b}
-
-          {a, @undefined} ->
-            {:removed_from_list, i, a}
-
-          {a, b} ->
-            {:changed_in_list, i, diff(a, b)}
-        end
-      end
-
-    changes = Enum.reject(changes, &is_nil/1)
-
-    case length(changes) do
-      0 -> :not_changed
-      _ -> changes
+    case list_changes(a, b, 0, []) do
+      [] -> :not_changed
+      changes -> changes
     end
   end
 
   def diff(a, b) do
     {:primitive_change, a, b}
   end
+
+  # Compares two lists position by position, walking both together, so that it takes time in
+  # proportion to the longer list's length.
+  defp list_changes([], [], _i, changes), do: Enum.reverse(changes)
+
+  defp list_changes([a | rest_a], [], i, changes),
+    do: list_changes(rest_a, [], i + 1, [{:removed_from_list, i, a} | changes])
+
+  defp list_changes([], [b | rest_b], i, changes),
+    do: list_changes([], rest_b, i + 1, [{:added_to_list, i, b} | changes])
+
+  defp list_changes([a | rest_a], [a | rest_b], i, changes),
+    do: list_changes(rest_a, rest_b, i + 1, changes)
+
+  defp list_changes([a | rest_a], [b | rest_b], i, changes),
+    do: list_changes(rest_a, rest_b, i + 1, [{:changed_in_list, i, diff(a, b)} | changes])
 
   @doc """
   Reverts a patch so that it can undo a change
